@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Segmentation Selector</title>
+    <link rel="icon" href="favicon.ico" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Medical segmentation review</p>
+        <h1>Choose the best segmentation for each case.</h1>
+        <p class="subhead">
+          Load a folder of images. Originals are files ending with <strong>-image</strong> or
+          <strong>-images</strong>, shown on top, with segmentation options below. Review in
+          blind mode and export a CSV.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <label class="file-button">
+          <input id="folderInput" type="file" webkitdirectory multiple />
+          Select image folder
+        </label>
+        <button id="downloadCsv" class="ghost" disabled>Download CSV</button>
+        <p id="formatHint" class="hint">Supported: png, jpg, jpeg, tif, tiff, bmp, gif, webp.</p>
+      </div>
+    </header>
+
+    <main>
+      <section class="status">
+        <div>
+          <span class="label">Cases</span>
+          <span id="caseCount" class="value">0</span>
+        </div>
+        <div>
+          <span class="label">Selected</span>
+          <span id="selectedCount" class="value">0</span>
+        </div>
+        <div id="warning" class="warning" hidden></div>
+      </section>
+
+      <section id="cases" class="cases"></section>
+    </main>
+
+    <template id="caseTemplate">
+      <article class="case">
+        <header>
+          <div>
+            <h2 class="case-title"></h2>
+            <p class="case-subtitle"></p>
+          </div>
+          <div class="selection-pill" data-state="none">Not selected</div>
+        </header>
+        <div class="original-wrap">
+          <p class="block-title">Original</p>
+          <div class="image-shell">
+            <img class="original-img" alt="Original" />
+            <div class="img-fallback" hidden>Preview unavailable in browser</div>
+          </div>
+        </div>
+        <div class="seg-wrap">
+          <p class="block-title">Options</p>
+          <div class="seg-grid"></div>
+        </div>
+      </article>
+    </template>
+
+    <template id="segTemplate">
+      <label class="seg-card">
+        <input type="radio" class="seg-radio" />
+        <div class="image-shell">
+          <img class="seg-img" alt="Segmentation" />
+          <div class="img-fallback" hidden>Preview unavailable in browser</div>
+        </div>
+        <div class="seg-meta">
+          <span class="seg-label"></span>
+          <span class="seg-file"></span>
+        </div>
+      </label>
+    </template>
+
+    <div id="viewer" class="viewer" hidden>
+      <div class="viewer-backdrop" data-close="true"></div>
+      <div class="viewer-panel" role="dialog" aria-modal="true" aria-label="Image preview">
+        <button id="viewerClose" class="viewer-close" type="button">Close</button>
+        <img id="viewerImage" alt="Preview" />
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
