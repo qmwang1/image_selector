@@ -7,6 +7,9 @@ const warningEl = document.getElementById("warning");
 const viewerEl = document.getElementById("viewer");
 const viewerImageEl = document.getElementById("viewerImage");
 const viewerCloseEl = document.getElementById("viewerClose");
+const zoomInBtn = document.getElementById("zoomIn");
+const zoomOutBtn = document.getElementById("zoomOut");
+const zoomResetBtn = document.getElementById("zoomReset");
 
 const caseTemplate = document.getElementById("caseTemplate");
 const segTemplate = document.getElementById("segTemplate");
@@ -30,6 +33,7 @@ let failedImages = [];
 let lastWarnings = [];
 let failedPreviewSample = [];
 let fetchErrors = [];
+let viewerScale = 1;
 
 const revokeUrls = () => {
   currentUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -43,6 +47,8 @@ const closeViewer = () => {
 };
 
 const openViewer = (src, altText = "Preview") => {
+  viewerScale = 1;
+  viewerImageEl.style.transform = `scale(${viewerScale})`;
   viewerImageEl.src = src;
   viewerImageEl.alt = altText;
   viewerEl.hidden = false;
@@ -55,7 +61,8 @@ const attachImage = (imgEl, file, fallbackEl, altText) => {
   const name = file.name || file.src || file.url || "unknown";
 
   const showFallback = () => {
-    fallbackEl.hidden = false;
+    // Keep UI clean; surface issues via warnings instead of per-image text.
+    fallbackEl.hidden = true;
     failedImages.push(name);
     if (failedPreviewSample.length < 3) failedPreviewSample.push(name);
     console.warn("Image failed to load:", name);
@@ -64,7 +71,11 @@ const attachImage = (imgEl, file, fallbackEl, altText) => {
 
   const bindViewer = () => {
     if (!imgEl.dataset.viewerBound) {
-      imgEl.addEventListener("click", () => openViewer(imgEl.src, altText));
+      imgEl.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openViewer(imgEl.src, altText);
+      });
       imgEl.dataset.viewerBound = "true";
     }
   };
@@ -407,6 +418,25 @@ viewerCloseEl.addEventListener("click", closeViewer);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !viewerEl.hidden) closeViewer();
+});
+
+const applyZoom = () => {
+  viewerImageEl.style.transform = `scale(${viewerScale})`;
+};
+
+zoomInBtn?.addEventListener("click", () => {
+  viewerScale = Math.min(viewerScale + 0.25, 5);
+  applyZoom();
+});
+
+zoomOutBtn?.addEventListener("click", () => {
+  viewerScale = Math.max(viewerScale - 0.25, 0.25);
+  applyZoom();
+});
+
+zoomResetBtn?.addEventListener("click", () => {
+  viewerScale = 1;
+  applyZoom();
 });
 
 casesEl.addEventListener("click", (event) => {

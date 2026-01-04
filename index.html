@@ -86,8 +86,17 @@
     <div id="viewer" class="viewer" hidden>
       <div class="viewer-backdrop" data-close="true"></div>
       <div class="viewer-panel" role="dialog" aria-modal="true" aria-label="Image preview">
-        <button id="viewerClose" class="viewer-close" type="button">Close</button>
-        <img id="viewerImage" alt="Preview" />
+        <div class="viewer-top">
+          <div class="viewer-controls">
+            <button id="zoomIn" type="button">+</button>
+            <button id="zoomOut" type="button">-</button>
+            <button id="zoomReset" type="button">Reset</button>
+          </div>
+          <button id="viewerClose" class="viewer-close" type="button">Close</button>
+        </div>
+        <div class="viewer-stage">
+          <img id="viewerImage" alt="Preview" />
+        </div>
       </div>
     </div>
 
