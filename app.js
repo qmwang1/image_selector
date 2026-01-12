@@ -25,7 +25,15 @@ const IMAGE_EXTENSIONS = new Set([
   "webp",
 ]);
 const ORIGINAL_SUFFIXES = ["-images", "-image"];
+const SEGMENTATION_LABELS = new Map([
+  ["-gt", "Ground truth"],
+  ["-thr10", "Threshold 10"],
+  ["-thr50", "Threshold 50"],
+  ["-thr90", "Threshold 90"],
+]);
+const SEGMENTATION_SUFFIXES = Array.from(SEGMENTATION_LABELS.keys());
 const DEFAULT_FOLDER = "images/";
+const DEFAULT_MANIFEST = `${DEFAULT_FOLDER}manifest.json`;
 
 let selections = new Map();
 let currentUrls = [];
@@ -166,12 +174,15 @@ const fetchAsBlobs = async (files) => {
 
 const loadDefaultFolder = async () => {
   try {
-    const res = await fetch(DEFAULT_FOLDER);
+    const res = await fetch(DEFAULT_MANIFEST, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
-    const files = extractFilesFromListing(html, DEFAULT_FOLDER);
+    const list = await res.json();
+    if (!Array.isArray(list)) throw new Error("Manifest is not an array");
+    const files = list
+      .filter((name) => typeof name === "string" && name.trim())
+      .map((name) => ({ name, src: `${DEFAULT_FOLDER}${name}` }));
     if (!files.length) {
-      setWarning([`No images found in ${DEFAULT_FOLDER}`]);
+      setWarning([`No images found in ${DEFAULT_MANIFEST}`]);
       return;
     }
     const { results, errors } = await fetchAsBlobs(files);
@@ -187,7 +198,9 @@ const loadDefaultFolder = async () => {
     renderCases({ groups, warnings: combinedWarnings });
   } catch (err) {
     console.warn("Auto-load default folder failed:", err);
-    setWarning([`Could not auto-load ${DEFAULT_FOLDER}. Select a folder manually.`]);
+    setWarning([
+      `Could not auto-load ${DEFAULT_FOLDER} (missing/invalid manifest). Select a folder manually.`,
+    ]);
   }
 };
 
@@ -209,6 +222,12 @@ const isImageFile = (file) => IMAGE_EXTENSIONS.has(getExtension(file.name));
 const getOriginalSuffix = (name) => {
   return ORIGINAL_SUFFIXES.find((suffix) => name.endsWith(suffix)) || "";
 };
+
+const getSegmentationSuffix = (name) => {
+  return SEGMENTATION_SUFFIXES.find((suffix) => name.endsWith(suffix)) || "";
+};
+
+const isAllowedSegmentation = (name) => Boolean(getSegmentationSuffix(name));
 
 const deriveBaseKeys = (names) => {
   const baseKeys = new Set();
@@ -264,9 +283,9 @@ const parseFiles = (files) => {
         group.original = file;
       } else {
         warnings.push("Multiple originals found for a case");
-        group.segs.push(file);
+        if (isAllowedSegmentation(baseName)) group.segs.push(file);
       }
-    } else {
+    } else if (isAllowedSegmentation(baseName)) {
       group.segs.push(file);
     }
   });
@@ -342,19 +361,30 @@ const renderCases = ({ groups, warnings }) => {
       originalFallback.textContent = "Original not found";
     }
 
-    const segFiles = group.segs.sort((a, b) => a.name.localeCompare(b.name));
+    const segFiles = group.segs
+      .slice()
+      .sort((a, b) => {
+        const aSuffix = getSegmentationSuffix(getBaseName(a.name));
+        const bSuffix = getSegmentationSuffix(getBaseName(b.name));
+        const aIndex = SEGMENTATION_SUFFIXES.indexOf(aSuffix);
+        const bIndex = SEGMENTATION_SUFFIXES.indexOf(bSuffix);
+        if (aIndex !== bIndex) return aIndex - bIndex;
+        return a.name.localeCompare(b.name);
+      });
     segFiles.forEach((segFile, segIndex) => {
       const segNode = segTemplate.content.cloneNode(true);
       const card = segNode.querySelector(".seg-card");
       const radio = segNode.querySelector(".seg-radio");
       const img = segNode.querySelector(".seg-img");
       const fallback = segNode.querySelector(".img-fallback");
+      const selectBtn = segNode.querySelector(".select-btn");
       const labelEl = segNode.querySelector(".seg-label");
       const fileEl = segNode.querySelector(".seg-file");
 
       radio.name = `seg-${baseKey}`;
       radio.value = segFile.name;
-      labelEl.textContent = `Option ${segIndex + 1}`;
+      const segSuffix = getSegmentationSuffix(getBaseName(segFile.name));
+      labelEl.textContent = SEGMENTATION_LABELS.get(segSuffix) || `Option ${segIndex + 1}`;
       fileEl.textContent = "";
       fileEl.hidden = true;
 
@@ -364,6 +394,12 @@ const renderCases = ({ groups, warnings }) => {
         selections.set(baseKey, radio.value);
         pill.textContent = "Selected";
         pill.dataset.state = "selected";
+        segGrid.querySelectorAll(".select-btn").forEach((btn) => {
+          btn.textContent = "Select";
+          btn.dataset.state = "idle";
+        });
+        selectBtn.textContent = "Selected";
+        selectBtn.dataset.state = "selected";
         updateCounts();
       });
 

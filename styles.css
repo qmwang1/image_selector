@@ -347,9 +347,38 @@ button:disabled {
   box-shadow: 0 16px 28px -22px rgba(227, 107, 58, 0.6);
 }
 
+.seg-actions {
+  display: flex;
+}
+
+.select-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid rgba(227, 107, 58, 0.45);
+  box-shadow: 0 10px 18px -16px var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.seg-card:hover .select-btn {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px -16px var(--shadow);
+}
+
+.select-btn[data-state="selected"] {
+  background: var(--mint);
+  border-color: rgba(42, 157, 143, 0.45);
+}
+
 .seg-meta {
-  display: grid;
-  gap: 0.25rem;
+  display: none;
 }
 
 .seg-label {
