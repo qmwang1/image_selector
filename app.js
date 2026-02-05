@@ -1,4 +1,3 @@
-const folderInput = document.getElementById("folderInput");
 const casesEl = document.getElementById("cases");
 const caseCountEl = document.getElementById("caseCount");
 const selectedCountEl = document.getElementById("selectedCount");
@@ -10,6 +9,7 @@ const viewerCloseEl = document.getElementById("viewerClose");
 const zoomInBtn = document.getElementById("zoomIn");
 const zoomOutBtn = document.getElementById("zoomOut");
 const zoomResetBtn = document.getElementById("zoomReset");
+const startScreenEl = document.getElementById("startScreen");
 
 const caseTemplate = document.getElementById("caseTemplate");
 const segTemplate = document.getElementById("segTemplate");
@@ -32,8 +32,7 @@ const SEGMENTATION_LABELS = new Map([
   ["-thr90", "Threshold 90"],
 ]);
 const SEGMENTATION_SUFFIXES = Array.from(SEGMENTATION_LABELS.keys());
-const DEFAULT_FOLDER = "images/";
-const DEFAULT_MANIFEST = `${DEFAULT_FOLDER}manifest.json`;
+const DEFAULT_MANIFEST = "manifest.json";
 
 let selections = new Map();
 let currentUrls = [];
@@ -172,34 +171,37 @@ const fetchAsBlobs = async (files) => {
   return { results, errors };
 };
 
-const loadDefaultFolder = async () => {
+const loadFolderFromManifest = async (folder) => {
   try {
-    const res = await fetch(DEFAULT_MANIFEST, { cache: "no-store" });
+    const normalized = folder.replace(/\/+$/, "");
+    const manifestUrl = `${normalized}/${DEFAULT_MANIFEST}`;
+    const res = await fetch(manifestUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const list = await res.json();
     if (!Array.isArray(list)) throw new Error("Manifest is not an array");
     const files = list
       .filter((name) => typeof name === "string" && name.trim())
-      .map((name) => ({ name, src: `${DEFAULT_FOLDER}${name}` }));
+      .map((name) => ({ name, src: `${normalized}/${name}` }));
     if (!files.length) {
-      setWarning([`No images found in ${DEFAULT_MANIFEST}`]);
+      setWarning([`No images found in ${manifestUrl}`]);
       return;
     }
     const { results, errors } = await fetchAsBlobs(files);
     fetchErrors = errors;
     if (!results.length) {
-      setWarning([`Could not read images from ${DEFAULT_FOLDER}`]);
+      setWarning([`Could not read images from ${normalized}`]);
       return;
     }
     failedImages = [];
     const { groups, warnings } = parseFiles(results);
     const combinedWarnings = warnings.slice();
-    if (errors.length) combinedWarnings.push(`Failed to fetch ${errors.length} file(s) from ${DEFAULT_FOLDER}`);
+    if (errors.length) combinedWarnings.push(`Failed to fetch ${errors.length} file(s) from ${normalized}`);
     renderCases({ groups, warnings: combinedWarnings });
+    startScreenEl.hidden = true;
   } catch (err) {
     console.warn("Auto-load default folder failed:", err);
     setWarning([
-      `Could not auto-load ${DEFAULT_FOLDER} (missing/invalid manifest). Select a folder manually.`,
+      `Could not auto-load ${folder} (missing/invalid manifest).`,
     ]);
   }
 };
@@ -425,14 +427,6 @@ const toCsv = () => {
     .join("\n");
 };
 
-folderInput.addEventListener("change", () => {
-  if (!folderInput.files?.length) return;
-  failedImages = [];
-  const files = Array.from(folderInput.files);
-  const { groups, warnings } = parseFiles(files);
-  renderCases({ groups, warnings });
-});
-
 downloadCsvBtn.addEventListener("click", () => {
   const csv = toCsv();
   const blob = new Blob([csv], { type: "text/csv" });
@@ -486,5 +480,11 @@ casesEl.addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadDefaultFolder();
+  const buttons = startScreenEl.querySelectorAll("[data-folder]");
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const folder = btn.dataset.folder;
+      if (folder) loadFolderFromManifest(folder);
+    });
+  });
 });

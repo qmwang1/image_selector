@@ -21,10 +21,6 @@
         </p>
       </div>
       <div class="hero-actions">
-        <label class="file-button">
-          <input id="folderInput" type="file" webkitdirectory multiple />
-          Select image folder
-        </label>
         <button id="downloadCsv" class="ghost" disabled>Download CSV</button>
         <p id="formatHint" class="hint">Supported: png, jpg, jpeg, tif, tiff, bmp, gif, webp.</p>
       </div>
@@ -99,6 +95,17 @@
         </div>
         <div class="viewer-stage">
           <img id="viewerImage" alt="Preview" />
+        </div>
+      </div>
+    </div>
+
+    <div id="startScreen" class="start-screen" role="dialog" aria-modal="true" aria-label="Choose image source">
+      <div class="start-card">
+        <h2>Choose image source</h2>
+        <p>Select which image set to load.</p>
+        <div class="start-actions">
+          <button class="primary" data-folder="images_inner">Load inner</button>
+          <button class="primary" data-folder="images_outer">Load outer</button>
         </div>
       </div>
     </div>

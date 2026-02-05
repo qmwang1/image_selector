@@ -190,6 +190,47 @@ button:disabled {
   color: #fff;
 }
 
+.start-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(7, 9, 14, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 50;
+}
+
+.start-card {
+  width: min(480px, 90vw);
+  background: #0f121c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.start-card h2 {
+  margin: 0 0 8px;
+}
+
+.start-card p {
+  margin: 0 0 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.start-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .start-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 .hint {
   font-size: 0.85rem;
   color: var(--ink-soft);
