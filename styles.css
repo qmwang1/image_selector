@@ -200,6 +200,10 @@ button:disabled {
   z-index: 50;
 }
 
+.start-screen[hidden] {
+  display: none;
+}
+
 .start-card {
   width: min(480px, 90vw);
   background: #0f121c;
