@@ -10,6 +10,9 @@ const zoomInBtn = document.getElementById("zoomIn");
 const zoomOutBtn = document.getElementById("zoomOut");
 const zoomResetBtn = document.getElementById("zoomReset");
 const startScreenEl = document.getElementById("startScreen");
+const loadingStatusEl = document.getElementById("loadingStatus");
+const loadingTextEl = document.getElementById("loadingText");
+const startButtons = Array.from(startScreenEl.querySelectorAll("[data-folder]"));
 
 const caseTemplate = document.getElementById("caseTemplate");
 const segTemplate = document.getElementById("segTemplate");
@@ -40,6 +43,14 @@ let failedPreviewSample = [];
 let fetchErrors = [];
 let activeFolder = "";
 let viewerScale = 1;
+
+const setLoadingState = (isLoading, text = "") => {
+  if (loadingStatusEl) loadingStatusEl.hidden = !isLoading;
+  if (loadingTextEl && text) loadingTextEl.textContent = text;
+  startButtons.forEach((btn) => {
+    btn.disabled = isLoading;
+  });
+};
 
 const revokeUrls = () => {
   currentUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -153,9 +164,10 @@ const extractFilesFromListing = (html, basePath) => {
   return files;
 };
 
-const fetchAsBlobs = async (files) => {
+const fetchAsBlobs = async (files, onProgress) => {
   const results = [];
   const errors = [];
+  let processed = 0;
   for (const f of files) {
     try {
       const res = await fetch(f.src || f.url);
@@ -165,6 +177,9 @@ const fetchAsBlobs = async (files) => {
     } catch (err) {
       console.warn("Fetch failed:", f.name, err);
       errors.push(f.name);
+    } finally {
+      processed += 1;
+      if (onProgress) onProgress(processed, files.length);
     }
   }
   return { results, errors };
@@ -175,6 +190,7 @@ const loadFolderFromManifest = async (folder) => {
     const normalized = folder.replace(/\/+$/, "");
     activeFolder = normalized;
     const manifestUrl = `${normalized}/${DEFAULT_MANIFEST}`;
+    setLoadingState(true, "Loading manifest...");
     const res = await fetch(manifestUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const list = await res.json();
@@ -186,7 +202,10 @@ const loadFolderFromManifest = async (folder) => {
       setWarning([`No images found in ${manifestUrl}`]);
       return;
     }
-    const { results, errors } = await fetchAsBlobs(files);
+    setLoadingState(true, `Loading images 0/${files.length}...`);
+    const { results, errors } = await fetchAsBlobs(files, (loaded, total) => {
+      setLoadingState(true, `Loading images ${loaded}/${total}...`);
+    });
     fetchErrors = errors;
     if (!results.length) {
       setWarning([`Could not read images from ${normalized}`]);
@@ -203,6 +222,8 @@ const loadFolderFromManifest = async (folder) => {
     setWarning([
       `Could not auto-load ${folder} (missing/invalid manifest).`,
     ]);
+  } finally {
+    if (!startScreenEl.hidden) setLoadingState(false);
   }
 };
 
@@ -505,8 +526,8 @@ casesEl.addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  const buttons = startScreenEl.querySelectorAll("[data-folder]");
-  buttons.forEach((btn) => {
+  setLoadingState(false);
+  startButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const folder = btn.dataset.folder;
       if (folder) loadFolderFromManifest(folder);
