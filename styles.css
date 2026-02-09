@@ -294,6 +294,11 @@ button:disabled {
   display: block;
 }
 
+.status .value-source {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .warning {
   color: #b42318;
   font-weight: 600;

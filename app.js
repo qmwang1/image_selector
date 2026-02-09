@@ -1,6 +1,7 @@
 const casesEl = document.getElementById("cases");
 const caseCountEl = document.getElementById("caseCount");
 const selectedCountEl = document.getElementById("selectedCount");
+const sourceValueEl = document.getElementById("sourceValue");
 const downloadCsvBtn = document.getElementById("downloadCsv");
 const warningEl = document.getElementById("warning");
 const viewerEl = document.getElementById("viewer");
@@ -50,6 +51,10 @@ const setLoadingState = (isLoading, text = "") => {
   startButtons.forEach((btn) => {
     btn.disabled = isLoading;
   });
+};
+
+const setSourceValue = (label) => {
+  if (sourceValueEl) sourceValueEl.textContent = label;
 };
 
 const revokeUrls = () => {
@@ -185,7 +190,7 @@ const fetchAsBlobs = async (files, onProgress) => {
   return { results, errors };
 };
 
-const loadFolderFromManifest = async (folder) => {
+const loadFolderFromManifest = async (folder, sourceLabel = folder) => {
   try {
     const normalized = folder.replace(/\/+$/, "");
     activeFolder = normalized;
@@ -216,12 +221,14 @@ const loadFolderFromManifest = async (folder) => {
     const combinedWarnings = warnings.slice();
     if (errors.length) combinedWarnings.push(`Failed to fetch ${errors.length} file(s) from ${normalized}`);
     renderCases({ groups, warnings: combinedWarnings });
+    setSourceValue(sourceLabel);
     startScreenEl.hidden = true;
   } catch (err) {
     console.warn("Auto-load default folder failed:", err);
     setWarning([
       `Could not auto-load ${folder} (missing/invalid manifest).`,
     ]);
+    setSourceValue(`${sourceLabel} (failed)`);
   } finally {
     if (!startScreenEl.hidden) setLoadingState(false);
   }
@@ -530,7 +537,11 @@ document.addEventListener("DOMContentLoaded", () => {
   startButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const folder = btn.dataset.folder;
-      if (folder) loadFolderFromManifest(folder);
+      const sourceLabel = btn.dataset.label || folder || "Unknown";
+      if (folder) {
+        setSourceValue(`${sourceLabel} (loading)`);
+        loadFolderFromManifest(folder, sourceLabel);
+      }
     });
   });
 });

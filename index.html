@@ -36,6 +36,10 @@
           <span class="label">Selected</span>
           <span id="selectedCount" class="value">0</span>
         </div>
+        <div>
+          <span class="label">Source</span>
+          <span id="sourceValue" class="value value-source">Not selected</span>
+        </div>
         <div id="warning" class="warning" hidden></div>
       </section>
 
@@ -104,8 +108,8 @@
         <h2>Choose image source</h2>
         <p>Select which image set to load.</p>
         <div class="start-actions">
-          <button class="primary" data-folder="images_inner">Load inner</button>
-          <button class="primary" data-folder="images_outer">Load outer</button>
+          <button class="primary" data-folder="images_inner" data-label="Inner">Load inner</button>
+          <button class="primary" data-folder="images_outer" data-label="Outer">Load outer</button>
         </div>
         <div id="loadingStatus" class="loading-status" hidden>
           <span class="loading-spinner" aria-hidden="true"></span>
