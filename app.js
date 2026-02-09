@@ -27,12 +27,10 @@ const IMAGE_EXTENSIONS = new Set([
 const ORIGINAL_SUFFIXES = ["-images", "-image"];
 const SEGMENTATION_LABELS = new Map([
   ["-gt", "Ground truth"],
-  ["-thr10", "Threshold 10"],
-  ["-thr50", "Threshold 50"],
-  ["-thr90", "Threshold 90"],
+  ["-argmax", "Argmax"],
 ]);
-const SEGMENTATION_SUFFIXES = Array.from(SEGMENTATION_LABELS.keys());
 const DEFAULT_MANIFEST = "manifest.json";
+const THRESHOLD_SUFFIX_PATTERN = /-thr(\d+)$/;
 
 let selections = new Map();
 let currentUrls = [];
@@ -40,6 +38,7 @@ let failedImages = [];
 let lastWarnings = [];
 let failedPreviewSample = [];
 let fetchErrors = [];
+let activeFolder = "";
 let viewerScale = 1;
 
 const revokeUrls = () => {
@@ -174,6 +173,7 @@ const fetchAsBlobs = async (files) => {
 const loadFolderFromManifest = async (folder) => {
   try {
     const normalized = folder.replace(/\/+$/, "");
+    activeFolder = normalized;
     const manifestUrl = `${normalized}/${DEFAULT_MANIFEST}`;
     const res = await fetch(manifestUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -226,10 +226,34 @@ const getOriginalSuffix = (name) => {
 };
 
 const getSegmentationSuffix = (name) => {
-  return SEGMENTATION_SUFFIXES.find((suffix) => name.endsWith(suffix)) || "";
+  if (name.endsWith("-gt")) return "-gt";
+  if (name.endsWith("-argmax")) return "-argmax";
+  const thresholdMatch = name.match(THRESHOLD_SUFFIX_PATTERN);
+  if (thresholdMatch) return `-thr${thresholdMatch[1]}`;
+  return "";
 };
 
 const isAllowedSegmentation = (name) => Boolean(getSegmentationSuffix(name));
+
+const getThresholdDigits = (suffix) => {
+  const match = suffix.match(THRESHOLD_SUFFIX_PATTERN);
+  return match ? match[1] : "";
+};
+
+const getSegmentationSortOrder = (suffix) => {
+  if (suffix === "-gt") return 0;
+  if (suffix === "-argmax") return 1;
+  const digits = getThresholdDigits(suffix);
+  if (digits) return 100 + Number.parseInt(digits, 10);
+  return 9999;
+};
+
+const getSegmentationLabel = (suffix, fallback) => {
+  if (SEGMENTATION_LABELS.has(suffix)) return SEGMENTATION_LABELS.get(suffix);
+  const digits = getThresholdDigits(suffix);
+  if (digits) return `Threshold ${digits}`;
+  return fallback;
+};
 
 const deriveBaseKeys = (names) => {
   const baseKeys = new Set();
@@ -299,8 +323,9 @@ const setWarning = (warnings) => {
   const items = [...warnings];
   if (fetchErrors.length) {
     const sample = fetchErrors.slice(0, 3).join(", ");
+    const folderName = activeFolder || "selected source";
     items.push(
-      `Fetch failed for ${fetchErrors.length} file(s) from ${DEFAULT_FOLDER}` +
+      `Fetch failed for ${fetchErrors.length} file(s) from ${folderName}` +
         (sample ? ` (e.g., ${sample})` : "")
     );
   }
@@ -368,9 +393,9 @@ const renderCases = ({ groups, warnings }) => {
       .sort((a, b) => {
         const aSuffix = getSegmentationSuffix(getBaseName(a.name));
         const bSuffix = getSegmentationSuffix(getBaseName(b.name));
-        const aIndex = SEGMENTATION_SUFFIXES.indexOf(aSuffix);
-        const bIndex = SEGMENTATION_SUFFIXES.indexOf(bSuffix);
-        if (aIndex !== bIndex) return aIndex - bIndex;
+        const aOrder = getSegmentationSortOrder(aSuffix);
+        const bOrder = getSegmentationSortOrder(bSuffix);
+        if (aOrder !== bOrder) return aOrder - bOrder;
         return a.name.localeCompare(b.name);
       });
     segFiles.forEach((segFile, segIndex) => {
@@ -386,7 +411,7 @@ const renderCases = ({ groups, warnings }) => {
       radio.name = `seg-${baseKey}`;
       radio.value = segFile.name;
       const segSuffix = getSegmentationSuffix(getBaseName(segFile.name));
-      labelEl.textContent = SEGMENTATION_LABELS.get(segSuffix) || `Option ${segIndex + 1}`;
+      labelEl.textContent = getSegmentationLabel(segSuffix, `Option ${segIndex + 1}`);
       fileEl.textContent = "";
       fileEl.hidden = true;
 
