@@ -13,6 +13,7 @@ const zoomResetBtn = document.getElementById("zoomReset");
 const startScreenEl = document.getElementById("startScreen");
 const loadingStatusEl = document.getElementById("loadingStatus");
 const loadingTextEl = document.getElementById("loadingText");
+const startButtons = Array.from(startScreenEl.querySelectorAll("[data-folder]"));
 
 const caseTemplate = document.getElementById("caseTemplate");
 const segTemplate = document.getElementById("segTemplate");
@@ -33,8 +34,6 @@ const SEGMENTATION_LABELS = new Map([
   ["-argmax", "Argmax"],
 ]);
 const DEFAULT_MANIFEST = "manifest.json";
-const DEFAULT_FOLDER = "images_inner_outer";
-const DEFAULT_SOURCE_LABEL = "New image set";
 const THRESHOLD_SUFFIX_PATTERN = /-thr(\d+)$/;
 
 let selections = new Map();
@@ -49,6 +48,9 @@ let viewerScale = 1;
 const setLoadingState = (isLoading, text = "") => {
   if (loadingStatusEl) loadingStatusEl.hidden = !isLoading;
   if (loadingTextEl && text) loadingTextEl.textContent = text;
+  startButtons.forEach((button) => {
+    button.disabled = isLoading;
+  });
 };
 
 const setSourceValue = (label) => {
@@ -188,11 +190,15 @@ const fetchAsBlobs = async (files, onProgress) => {
   return { results, errors };
 };
 
-const loadFolderFromManifest = async (folder, sourceLabel = folder) => {
+const loadFolderFromManifest = async (
+  folder,
+  manifestName = DEFAULT_MANIFEST,
+  sourceLabel = folder
+) => {
   try {
     const normalized = folder.replace(/\/+$/, "");
     activeFolder = normalized;
-    const manifestUrl = `${normalized}/${DEFAULT_MANIFEST}`;
+    const manifestUrl = `${normalized}/${manifestName}`;
     setLoadingState(true, "Loading manifest...");
     const res = await fetch(manifestUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -222,9 +228,9 @@ const loadFolderFromManifest = async (folder, sourceLabel = folder) => {
     setSourceValue(sourceLabel);
     startScreenEl.hidden = true;
   } catch (err) {
-    console.warn("Auto-load default folder failed:", err);
+    console.warn("Image source failed to load:", err);
     setWarning([
-      `Could not auto-load ${folder} (missing/invalid manifest).`,
+      `Could not load ${sourceLabel} (missing/invalid manifest).`,
     ]);
     setSourceValue(`${sourceLabel} (failed)`);
   } finally {
@@ -531,6 +537,15 @@ casesEl.addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  setSourceValue(`${DEFAULT_SOURCE_LABEL} (loading)`);
-  loadFolderFromManifest(DEFAULT_FOLDER, DEFAULT_SOURCE_LABEL);
+  setLoadingState(false);
+  startButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const folder = button.dataset.folder;
+      const manifestName = button.dataset.manifest || DEFAULT_MANIFEST;
+      const sourceLabel = button.dataset.label || folder || "Unknown";
+      if (!folder) return;
+      setSourceValue(`${sourceLabel} (loading)`);
+      loadFolderFromManifest(folder, manifestName, sourceLabel);
+    });
+  });
 });

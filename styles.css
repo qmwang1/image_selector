@@ -223,7 +223,14 @@ button:disabled {
   color: rgba(255, 255, 255, 0.7);
 }
 
+.start-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .loading-status {
+  margin-top: 14px;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -247,6 +254,12 @@ button:disabled {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .start-actions {
+    grid-template-columns: 1fr;
   }
 }
 
