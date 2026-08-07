@@ -13,7 +13,6 @@ const zoomResetBtn = document.getElementById("zoomReset");
 const startScreenEl = document.getElementById("startScreen");
 const loadingStatusEl = document.getElementById("loadingStatus");
 const loadingTextEl = document.getElementById("loadingText");
-const startButtons = Array.from(startScreenEl.querySelectorAll("[data-folder]"));
 
 const caseTemplate = document.getElementById("caseTemplate");
 const segTemplate = document.getElementById("segTemplate");
@@ -34,6 +33,8 @@ const SEGMENTATION_LABELS = new Map([
   ["-argmax", "Argmax"],
 ]);
 const DEFAULT_MANIFEST = "manifest.json";
+const DEFAULT_FOLDER = "images_inner_outer";
+const DEFAULT_SOURCE_LABEL = "New image set";
 const THRESHOLD_SUFFIX_PATTERN = /-thr(\d+)$/;
 
 let selections = new Map();
@@ -48,9 +49,6 @@ let viewerScale = 1;
 const setLoadingState = (isLoading, text = "") => {
   if (loadingStatusEl) loadingStatusEl.hidden = !isLoading;
   if (loadingTextEl && text) loadingTextEl.textContent = text;
-  startButtons.forEach((btn) => {
-    btn.disabled = isLoading;
-  });
 };
 
 const setSourceValue = (label) => {
@@ -533,15 +531,6 @@ casesEl.addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  setLoadingState(false);
-  startButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const folder = btn.dataset.folder;
-      const sourceLabel = btn.dataset.label || folder || "Unknown";
-      if (folder) {
-        setSourceValue(`${sourceLabel} (loading)`);
-        loadFolderFromManifest(folder, sourceLabel);
-      }
-    });
-  });
+  setSourceValue(`${DEFAULT_SOURCE_LABEL} (loading)`);
+  loadFolderFromManifest(DEFAULT_FOLDER, DEFAULT_SOURCE_LABEL);
 });
